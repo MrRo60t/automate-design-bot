@@ -76,11 +76,14 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     except Exception as e:
         logger.error(f"Error generating presentation: {e}", exc_info=True)
-        await context.bot.edit_message_text(
-            chat_id=update.effective_chat.id,
-            message_id=status_msg.message_id,
-            text=ERROR_MSG,
-        )
+        try:
+            await context.bot.edit_message_text(
+                chat_id=update.effective_chat.id,
+                message_id=status_msg.message_id,
+                text=ERROR_MSG,
+            )
+        except Exception:
+            await update.message.reply_text(ERROR_MSG)
 
     return WAITING_FOR_TEXT
 
@@ -109,7 +112,23 @@ def main():
     )
 
     app.add_handler(conv)
-    app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+
+    # Use webhook if RAILWAY_PUBLIC_DOMAIN is set, otherwise fall back to polling
+    public_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+    port = int(os.environ.get("PORT", 8080))
+
+    if public_domain:
+        webhook_url = f"https://{public_domain}/webhook"
+        logger.info(f"Starting webhook on {webhook_url}")
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            webhook_url=webhook_url,
+            drop_pending_updates=True,
+        )
+    else:
+        logger.info("Starting polling mode")
+        app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 
 if __name__ == "__main__":
