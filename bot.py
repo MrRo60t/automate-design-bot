@@ -118,11 +118,12 @@ def main():
     port = int(os.environ.get("PORT", 8080))
 
     if public_domain:
-        webhook_url = f"https://{public_domain}/webhook"
+        webhook_url = f"https://{public_domain}/"
         logger.info(f"Starting webhook on {webhook_url}")
         app.run_webhook(
             listen="0.0.0.0",
             port=port,
+            url_path="/",
             webhook_url=webhook_url,
             drop_pending_updates=True,
         )
